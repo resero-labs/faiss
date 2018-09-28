@@ -1,0 +1,104 @@
+# Copyright (c) 2015-present, Facebook, Inc.
+# All rights reserved.
+#
+# This source code is licensed under the BSD+Patents license found in the
+# LICENSE file in the root directory of this source tree.
+
+CXX          = g++ -std=c++11
+CXXCPP       = g++ -std=c++11 -E
+#CPPFLAGS     = -DFINTEGER=int
+CXXFLAGS     = -fPIC -m64 -Wall -g -O3 -fopenmp -Wno-sign-compare
+CPUFLAGS     = -msse4 -mpopcnt
+LDFLAGS      = -fPIC -fopenmp
+
+# common linux flags
+SHAREDEXT   = so
+SHAREDFLAGS = -shared
+MKDIR_P = mkdir -p
+
+prefix      ?= /usr/local
+exec_prefix ?= ${prefix}
+libdir       = ${exec_prefix}/lib
+includedir   = ${prefix}/include
+
+##########################################################################
+# BLAS/Lapack implementation option
+##########################################################################
+#
+# Intel MKL
+#
+# This is the fastest BLAS implementation we tested. Unfortunately it
+# is not open-source and determining the correct linking flags is a
+# nightmare. See
+#
+#   https://software.intel.com/en-us/articles/intel-mkl-link-line-advisor
+#
+# The latest tested version is MKL 2017.0.098 (2017 Initial Release) and can
+# be downloaded here:
+#
+#   https://registrationcenter.intel.com/en/forms/?productid=2558&licensetype=2
+#
+# The following settings are working if MKL is installed on its default folder:
+#
+
+MKLROOT   = /opt/intel/compilers_and_libraries/linux/mkl/
+
+LDFLAGS  += -Wl,--no-as-needed -L$(MKLROOT)/lib/intel64
+LIBS     += -lmkl_intel_ilp64 -lmkl_core -lmkl_gnu_thread -ldl -lpthread
+
+CPPFLAGS += -DFINTEGER=long
+
+#
+# You may have to set the LD_LIBRARY_PATH=$MKLROOT/lib/intel64 at runtime.
+#
+# If at runtime you get the error:
+#   Intel MKL FATAL ERROR: Cannot load libmkl_avx2.so or libmkl_def.so
+# you may set
+#   LD_PRELOAD=$MKLROOT/lib/intel64/libmkl_core.so:$MKLROOT/lib/intel64/libmkl_sequential.so
+# at runtime as well.
+
+##########################################################################
+# SWIG and Python flags
+##########################################################################
+
+# SWIG executable. This should be at least version 3.x
+SWIG = swig
+
+# The Python include directories for a given python executable can
+# typically be found with
+#
+# python -c "import distutils.sysconfig; print distutils.sysconfig.get_python_inc()"
+# python -c "import numpy ; print numpy.get_include()"
+#
+# or, for Python 3, with
+#
+# python3 -c "import distutils.sysconfig; print(distutils.sysconfig.get_python_inc())"
+# python3 -c "import numpy ; print(numpy.get_include())"
+#
+
+PYTHONCFLAGS = -I/usr/include/python3.5m -I/usr/local/lib/python3.5/dist-packages/numpy/core/include
+PYTHONLIB    = -lpython
+PYTHON       = /usr/bin/python3
+
+###########################################################################
+# Cuda GPU flags
+###########################################################################
+
+
+
+## root of the cuda 9 installation
+#CUDAROOT     = /usr/local/cuda-8.0
+#NVCC         = $(CUDAROOT)/bin/nvcc
+#NVCCLDFLAGS  = -L$(CUDAROOT)/lib64
+#NVCCLIBS     = -lcudart -lcublas -lcuda
+#CUDACFLAGS   = -I$(CUDAROOT)/include
+#NVCCFLAGS    = -I $(CUDAROOT)/targets/x86_64-linux/include/ \
+#-Xcompiler -fPIC \
+#-Xcudafe --diag_suppress=unrecognized_attribute \
+#-gencode arch=compute_35,code="compute_35" \
+#-gencode arch=compute_52,code="compute_52" \
+#-gencode arch=compute_60,code="compute_60" \
+#-lineinfo \
+#-ccbin $(CXX) -DFAISS_USE_FLOAT16
+#
+#

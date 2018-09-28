@@ -45,13 +45,16 @@ _swigfaiss_gpu.so: swigfaiss_gpu_wrap.o ../gpu/libgpufaiss.a ../libfaiss.a
 
 build: cpu
 	$(PYTHON) setup.py build
+	$(PYTHON) setup.py bdist_wheel
 
 install: build
 	$(PYTHON) setup.py install
 
 clean:
 	rm -f swigfaiss_wrap.cpp swigfaiss_gpu_wrap.cpp
+	rm -f swigfaiss_wrap.o
 	rm -f swigfaiss.py swigfaiss_gpu.py
 	rm -f _swigfaiss.so _swigfaiss_gpu.so
+	rm -rf build dist faiss.egg-info faiss
 
 .PHONY: all build clean cpu gpu install

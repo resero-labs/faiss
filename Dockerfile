@@ -1,37 +1,41 @@
-FROM nvidia/cuda:8.0-devel-ubuntu16.04
+FROM nvidia/cuda:8.0-devel-ubuntu16.04 as builder
 MAINTAINER Pierre Letessier <pletessier@ina.fr>
 
-RUN apt-get update -y
-RUN apt-get install -y libopenblas-dev python-numpy python-dev swig git python-pip wget
+ADD install-mkl.sh /
 
-RUN pip install matplotlib
-
-COPY . /opt/faiss
+RUN apt-get update -y; \
+    apt-get install -y \
+        build-essential \
+        git \
+        libgomp1 \
+        libopenblas-dev \
+        python3 \
+        python3-dev \
+        python3-pip \
+        swig \
+        wget \
+    ; \
+    /install-mkl.sh; \
+    apt-get clean; \
+    rm -rf /var/tmp/* /tmp/* /var/lib/apt/lists/*; \
+    pip3 install \
+        numpy \
+        matplotlib \
+    ;
 
 WORKDIR /opt/faiss
 
 ENV BLASLDFLAGS /usr/lib/libopenblas.so.0
 
-RUN mv example_makefiles/makefile.inc.Linux ./makefile.inc
+COPY . /opt/faiss
+COPY example_makefiles/makefile.inc.docker ./makefile.inc
 
-RUN make tests/test_blas -j $(nproc) && \
-    make -j $(nproc) && \
-    make demos/demo_sift1M -j $(nproc) && \
+RUN make; \
     make py
 
-RUN cd gpu && \
-    make -j $(nproc) && \
-    make test/demo_ivfpq_indexing_gpu && \
-    make py
+FROM alpine
 
-ENV PYTHONPATH $PYTHONPATH:/opt/faiss
-
-# RUN ./tests/test_blas && \
-#     tests/demo_ivfpq_indexing
-
-
-# RUN wget ftp://ftp.irisa.fr/local/texmex/corpus/sift.tar.gz && \
-#     tar xf sift.tar.gz && \
-#     mv sift sift1M
-
-# RUN tests/demo_sift1M
+RUN mkdir -p /artifacts
+COPY --from="builder" /opt/faiss/libfaiss.a /artifacts/
+COPY --from="builder" /opt/faiss/python/dist/faiss-0.1-py3-none-any.whl /artifacts/
+COPY --from="builder" /install-mkl.sh /artifacts/
